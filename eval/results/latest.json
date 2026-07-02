@@ -1,0 +1,53 @@
+{
+  "agent": "offline",
+  "total": 4,
+  "solved": 4,
+  "solve_rate": 1.0,
+  "outcomes": {
+    "solved": 4,
+    "no_localization": 0,
+    "bad_patch": 0,
+    "tests_failed": 0,
+    "timeout": 0
+  },
+  "tasks": [
+    {
+      "task_id": "dedupe_order",
+      "outcome": "solved",
+      "localized": [
+        "dedupe.py"
+      ],
+      "apply_message": "patch applied",
+      "test_status": "passed"
+    },
+    {
+      "task_id": "fizzbuzz_order",
+      "outcome": "solved",
+      "localized": [
+        "fizzbuzz.py"
+      ],
+      "apply_message": "patch applied",
+      "test_status": "passed"
+    },
+    {
+      "task_id": "mean_off_by_one",
+      "outcome": "solved",
+      "localized": [
+        "meanstat.py"
+      ],
+      "apply_message": "patch applied",
+      "test_status": "passed"
+    },
+    {
+      "task_id": "parse_kv_maxsplit",
+      "outcome": "solved",
+      "localized": [
+        "kvparse.py"
+      ],
+      "apply_message": "patch applied",
+      "test_status": "passed"
+    }
+  ],
+  "generated_at": "2026-07-02T23:47:15+00:00",
+  "python": "3.12.10"
+}

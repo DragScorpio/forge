@@ -1,0 +1,10 @@
+diff --git a/kvparse.py b/kvparse.py
+--- a/kvparse.py
++++ b/kvparse.py
+@@ -3,5 +3,5 @@
+ 
+ def parse_kv(line):
+     """Split 'key=value' into a (key, value) tuple."""
+-    key, value = line.split("=")
++    key, value = line.split("=", 1)
+     return key, value

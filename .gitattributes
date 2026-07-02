@@ -1,0 +1,8 @@
+# Normalize line endings: store as LF in the repo, check out as LF on every platform.
+# Patch application depends on stable newlines, so this matters more here than usual.
+* text=auto eol=lf
+
+# Treat these as binary (no EOL conversion).
+*.png binary
+*.gz binary
+*.zip binary

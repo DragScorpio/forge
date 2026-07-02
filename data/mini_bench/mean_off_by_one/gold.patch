@@ -1,0 +1,9 @@
+diff --git a/meanstat.py b/meanstat.py
+--- a/meanstat.py
++++ b/meanstat.py
+@@ -3,4 +3,4 @@
+ 
+ def mean(xs):
+     """Return the arithmetic mean of a non-empty list of numbers."""
+-    return sum(xs) / (len(xs) - 1)
++    return sum(xs) / len(xs)

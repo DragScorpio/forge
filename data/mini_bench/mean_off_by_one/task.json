@@ -1,0 +1,6 @@
+{
+  "id": "mean_off_by_one",
+  "description": "mean() computes the arithmetic mean of a list of numbers but returns the wrong value; the average of [2, 4, 6] should be 4.0.",
+  "module": "meanstat.py",
+  "test_file": "test_meanstat.py"
+}

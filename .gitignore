@@ -1,0 +1,24 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets / local config
+.env
+*.local.*
+
+# LLM response cache
+data/.llm_cache/
+
+# Downloaded benchmarks: never commit raw datasets (script the download instead).
+# The self-authored mini-bench IS committed (it is the fixture), so it is not ignored.
+data/swebench_lite/
+
+# Eval outputs: keep the folder + the canonical latest.json (so numbers are versioned and
+# regressions show up in diffs), but not the timestamped runs.
+eval/results/*
+!eval/results/.gitkeep
+!eval/results/latest.json

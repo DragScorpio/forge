@@ -1,0 +1,6 @@
+{
+  "id": "dedupe_order",
+  "description": "dedupe() should remove duplicate items while keeping their first-seen order, but it reorders the result instead of preserving the original order.",
+  "module": "dedupe.py",
+  "test_file": "test_dedupe.py"
+}

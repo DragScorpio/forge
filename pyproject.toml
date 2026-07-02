@@ -1,0 +1,35 @@
+[project]
+name = "forge"
+version = "0.0.1"
+description = "Agentic SWE harness: localize a bug, generate a patch, and prove the fix by running the repo's own tests in a sandbox."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.40"]
+openai = ["openai>=1.40"]
+dev = ["pytest>=8", "ruff>=0.6", "black>=24.0"]
+
+[project.scripts]
+forge = "forge.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["forge*"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+# Only collect the harness's own tests. The mini-bench test files under data/ are fixtures with
+# seeded bugs — they are supposed to fail, and Forge runs them itself inside the sandbox.
+testpaths = ["tests"]

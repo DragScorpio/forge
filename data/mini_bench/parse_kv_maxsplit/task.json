@@ -1,0 +1,6 @@
+{
+  "id": "parse_kv_maxsplit",
+  "description": "parse_kv() splits a 'key=value' line into a (key, value) pair, but it breaks when the value itself contains an '=' character.",
+  "module": "kvparse.py",
+  "test_file": "test_kvparse.py"
+}

@@ -1,0 +1,9 @@
+diff --git a/dedupe.py b/dedupe.py
+--- a/dedupe.py
++++ b/dedupe.py
+@@ -3,4 +3,4 @@
+ 
+ def dedupe(items):
+     """Return the items with duplicates removed, preserving first-seen order."""
+-    return sorted(set(items))
++    return list(dict.fromkeys(items))
