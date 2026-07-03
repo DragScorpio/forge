@@ -50,10 +50,12 @@ def _cached(
     call: Callable[[], dict | str],
 ) -> dict | str:
     """Return a cached response if present, else call the model and cache the result."""
+    # No cache dir means always go live (tests that want no disk state pass cache_dir=None).
     if not cache_dir:
         return call()
     key = _cache_key(provider, model, messages, schema)
     path = Path(cache_dir) / f"{key}.json"
+    # Cache hit: an identical request was already answered, so skip the network and the cost.
     if path.exists():
         return json.loads(path.read_text(encoding="utf-8"))["response"]
     result = call()
@@ -94,6 +96,7 @@ class AnthropicAdapter:
                 "messages": convo,
             }
             if schema is not None:
+                # Force a tool call so the model must answer in our schema, not free prose.
                 kwargs["tools"] = [
                     {
                         "name": _TOOL_NAME,
@@ -104,6 +107,7 @@ class AnthropicAdapter:
                 kwargs["tool_choice"] = {"type": "tool", "name": _TOOL_NAME}
             resp = client.messages.create(**kwargs)
             if schema is not None:
+                # The structured answer arrives as the input of the forced tool_use block.
                 for block in resp.content:
                     if block.type == "tool_use" and block.name == _TOOL_NAME:
                         return dict(block.input)
@@ -129,6 +133,7 @@ class OpenAIAdapter:
             client = openai.OpenAI()
             kwargs: dict[str, Any] = {"model": self.model, "messages": messages}
             if schema is not None:
+                # json_schema mode makes the reply parse cleanly as our schema.
                 kwargs["response_format"] = {
                     "type": "json_schema",
                     "json_schema": {"name": "patch_proposal", "schema": schema},

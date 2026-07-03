@@ -59,14 +59,18 @@ def solve(
     files = task.repo_files()
 
     with checkout(task.repo_dir) as ws:
+        # 1) Ground the agent: rank the source files likely to hold the bug. No candidate ranks
+        #    means nowhere to point the agent, so it is its own outcome (not a patch failure).
         candidates = localize(ws.path, files, task.description, test_source, top_k=top_k)
         if not candidates:
             return SolveResult(task.task_id, NO_LOCALIZATION, agent.name)
 
+        # 2) Ask the agent for a patch, showing it only the localized files.
         localized = [c.path for c in candidates]
         file_contents = {c.path: ws.read(c.path) for c in candidates}
         proposal = agent.propose(task, test_source, file_contents)
 
+        # 3) Apply the patch in the throwaway copy. One that won't apply never reaches the tests.
         applied = apply_patch(ws, proposal.patch)
         if not applied.applied:
             return SolveResult(
@@ -79,6 +83,7 @@ def solve(
                 apply_message=applied.message,
             )
 
+        # 4) The gate: the tests decide. Pass -> solved, hang -> timeout, else -> tests_failed.
         verdict = run_tests(ws.path, task.test_file, timeout=timeout)
         if verdict.passed:
             outcome = SOLVED

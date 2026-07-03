@@ -74,11 +74,14 @@ def localize(
     scored: list[Candidate] = []
     for rel in files:
         tokens = set(tokenize((repo_dir / rel).read_text(encoding="utf-8")))
+        # Score = share of the query's terms this file contains. A file with no overlap is not a
+        # candidate at all, so it is dropped rather than ranked last.
         matched = query & tokens
         if not matched:
             continue
         scored.append(
             Candidate(path=rel, score=len(matched) / len(query), matched=tuple(sorted(matched)))
         )
+    # Best score first; break ties by path so the ranking is stable and reproducible.
     scored.sort(key=lambda c: (-c.score, c.path))
     return scored[:top_k]

@@ -49,6 +49,7 @@ class Task:
         files = []
         for path in sorted(self.repo_dir.glob("*.py")):
             name = path.name
+            # Tests are the spec, not the target: fix the source, never the test it must pass.
             if name.startswith("test_") or name == "conftest.py":
                 continue
             files.append(name)
@@ -68,6 +69,7 @@ def load_mini_bench(root: str | Path = DEFAULT_MINI_BENCH) -> list[Task]:
     root = Path(root)
     if not root.is_dir():
         raise FileNotFoundError(f"mini-bench root not found: {root}")
+    # A directory counts as a task only if it has a task.json, so stray folders are ignored.
     tasks = [_load_dir(d) for d in sorted(root.iterdir()) if (d / _META_FILE).is_file()]
     if not tasks:
         raise FileNotFoundError(f"no tasks (no */task.json) under {root}")
@@ -84,6 +86,7 @@ def _load_dir(task_dir: Path) -> Task:
         test_file=meta["test_file"],
         repo_dir=task_dir,
     )
+    # Fail fast on a malformed task (missing source, test, or gold) instead of failing mid-run.
     for required in (task.module, task.test_file, _GOLD_FILE):
         if not (task_dir / required).is_file():
             raise FileNotFoundError(f"task {task.task_id!r} missing {required}")

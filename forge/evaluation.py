@@ -53,6 +53,7 @@ def evaluate(
     kwargs = {"timeout": timeout} if timeout is not None else {}
     results = [solve(task, agent=agent, **kwargs) for task in tasks]
 
+    # Tally every outcome, solved included, so the report shows the full taxonomy at a glance.
     counts = {outcome: 0 for outcome in OUTCOMES}
     for r in results:
         counts[r.outcome] += 1
@@ -84,6 +85,7 @@ def save_report(report: EvalReport, out_dir: str | Path = DEFAULT_RESULTS_DIR) -
     payload = asdict(report)
 
     stamp = report.generated_at.replace(":", "").replace("-", "")
+    # latest.json is the canonical, git-tracked number; the timestamped file is an archive snapshot.
     (out / f"eval_{stamp}.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
     latest = out / "latest.json"
     latest.write_text(json.dumps(payload, indent=2), encoding="utf-8")

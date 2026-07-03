@@ -106,6 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point: parse args and dispatch to the chosen subcommand."""
+    # Reports use a few non-ASCII glyphs; Windows consoles default to cp1252 and would crash.
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(encoding="utf-8")

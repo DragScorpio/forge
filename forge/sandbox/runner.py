@@ -46,11 +46,13 @@ def run_tests(
     ``timeout`` seconds so a runaway or hanging patch cannot stall the harness.
     """
     interpreter = python or sys.executable
+    # Keep the child clean: no .pyc litter in the workspace, unbuffered so output arrives whole.
     env = dict(os.environ)
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["PYTHONUNBUFFERED"] = "1"
 
     try:
+        # no:cacheprovider stops pytest writing a .pytest_cache into the throwaway workspace.
         proc = subprocess.run(
             [interpreter, "-m", "pytest", test_file, "-q", "-p", "no:cacheprovider"],
             cwd=str(workspace_path),
@@ -60,6 +62,7 @@ def run_tests(
             env=env,
         )
     except subprocess.TimeoutExpired as exc:
+        # A hung or looping patch trips the timeout; the caller maps this to its own outcome.
         captured = (exc.stdout or "") + (exc.stderr or "")
         if isinstance(captured, bytes):
             captured = captured.decode("utf-8", errors="replace")

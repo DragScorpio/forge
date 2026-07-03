@@ -26,6 +26,7 @@ def _render_files(file_contents: dict[str, str]) -> str:
     """Lay out each candidate file with a header and a fenced body for the model to read."""
     blocks = []
     for path, body in file_contents.items():
+        # Fence each file so the model sees clear boundaries between the sources it may edit.
         blocks.append(f"--- FILE: {path} ---\n```python\n{body}\n```")
     return "\n\n".join(blocks)
 

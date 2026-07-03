@@ -47,6 +47,7 @@ class LLMAgent:
         result = self.client.complete(messages, PATCH_PROPOSAL_SCHEMA)
         if not isinstance(result, dict):
             raise RuntimeError("LLM did not return a structured patch proposal")
+        # Be defensive: default the fields rather than crash if a provider omits one.
         return Proposal(
             plan=list(result.get("plan", [])),
             patch=str(result.get("patch", "")),
@@ -77,6 +78,7 @@ def get_agent() -> Agent:
     """Factory selected by FORGE_LLM_PROVIDER (default: auto-detect from available keys)."""
     provider = os.environ.get("FORGE_LLM_PROVIDER", "auto").lower()
     if provider == "auto":
+        # Prefer a real provider when its key is set, else the deterministic offline double.
         if os.environ.get("ANTHROPIC_API_KEY"):
             provider = "anthropic"
         elif os.environ.get("OPENAI_API_KEY"):

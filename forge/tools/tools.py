@@ -47,12 +47,14 @@ def apply_patch(workspace: Workspace, diff: str) -> ApplyResult:
     if not diff.endswith("\n"):
         diff += "\n"
 
+    # git apply reads a file, so stage the diff in a temp .patch with LF newlines for portability.
     with tempfile.NamedTemporaryFile(
         "w", suffix=".patch", delete=False, encoding="utf-8", newline="\n"
     ) as fh:
         patch_path = Path(fh.name)
         fh.write(diff)
     try:
+        # -p1 strips the a/ and b/ prefixes so hunks target files at the workspace root.
         proc = subprocess.run(
             ["git", "apply", "-p1", "--whitespace=nowarn", str(patch_path)],
             cwd=workspace.path,
