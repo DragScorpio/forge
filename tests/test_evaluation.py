@@ -21,8 +21,11 @@ def test_offline_full_solve_rate(all_tasks):
 def test_failure_breakdown_keys(all_tasks):
     report, _ = evaluation.evaluate(all_tasks, agent=OfflineAgent())
     breakdown = evaluation.failure_breakdown(report)
-    assert set(breakdown) == {"no_localization", "bad_patch", "tests_failed", "timeout"}
+    assert set(breakdown) == {
+        "no_localization", "policy_violation", "bad_patch", "tests_failed", "timeout",
+    }
     assert sum(breakdown.values()) == 0  # offline solves everything
+    assert report.policy_violation_rate == 0.0
 
 
 def test_save_report_writes_latest(all_tasks, tmp_path):

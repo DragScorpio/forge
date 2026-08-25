@@ -101,6 +101,37 @@ def test_gate_rejects_knowingly_wrong_patch(mean_task, make_diff):
     assert not verdict.passed        # the tests, not the model, decide
 ```
 
+## Guardrails: the policy layer (v0.2)
+
+A model that can edit any file is a model that can break anything. The policy layer sits between the
+agent's proposed patch and the workspace, and it enforces configurable constraints:
+
+- **Protected paths** — glob patterns the agent may not touch (e.g. `tests/*`, `Makefile`, `*.lock`).
+- **Max files** — cap how many files a single patch may modify.
+- **Max total lines** — cap total added + removed lines across the patch.
+- **Required patterns** — regex patterns that must appear in every changed file after patching (e.g. a
+  copyright header).
+
+A denied action is **refused and logged**, not silently dropped, so the eval can report it as a safety
+signal. Config lives in a `forge_policy.json` file; an absent file means "allow everything" (v0.1
+behavior, backward compatible).
+
+```console
+$ cat forge_policy.json
+{"protected_paths": ["meanstat.py"], "max_files": 1, "max_total_lines": 50}
+
+$ forge solve mean_off_by_one --policy forge_policy.json
+task:    mean_off_by_one
+agent:   offline
+result:  NOT SOLVED (policy_violation)
+policy violations:
+  - meanstat.py matches protected pattern 'meanstat.py'
+
+$ forge eval --policy forge_policy.json
+solve-rate: 75.0%
+policy-violation-rate: 25.0%
+```
+
 ## Architecture — the engineering core, then the AI
 
 | Piece | Module | Job |
@@ -110,9 +141,10 @@ def test_gate_rejects_knowingly_wrong_patch(mean_task, make_diff):
 | Localization | `forge/localize/` | Rank the source files most likely relevant (keyword baseline; grounds the agent). |
 | Agent | `forge/agent/` | The loop + provider-agnostic `LLMClient` (Anthropic / OpenAI) + the offline double. |
 | Tools | `forge/tools/` | A small, explicit surface: read-only (`read_file`, `search`) vs mutating (`apply_patch`). |
+| **Policy** | `forge/policy/` | Config-driven guardrails: protected paths, scope limits, required patterns. Refuses and logs violations before the patch touches the workspace. |
 | Sandbox | `forge/sandbox/` | The verification gate: run the tests in a subprocess with a timeout. |
 | Solve loop | `forge/solve.py` | Tie it together and classify the outcome. |
-| Eval | `forge/evaluation.py` | Solve-rate + failure taxonomy, versioned under `eval/results/`. |
+| Eval | `forge/evaluation.py` | Solve-rate + failure taxonomy + policy-violation rate, versioned under `eval/results/`. |
 
 The AI portion is small on purpose, and it is **evaluated**, not trusted. Removing the LLM still leaves a
 real system: task loading, isolated workspaces, retrieval, patch application, a sandbox verifier, and an
@@ -121,9 +153,13 @@ eval harness.
 ## The eval is a first-class deliverable
 
 `forge eval` runs the whole task set and reports **solve-rate** plus a **failure-mode breakdown**
-(`no_localization` / `bad_patch` / `tests_failed` / `timeout`), saved to `eval/results/latest.json` so the
-numbers are versioned and regressions show up in diffs. Classifying *why* each miss happened is the point:
-it is the difference between "it broke" and "localization missed the file."
+(`no_localization` / `policy_violation` / `bad_patch` / `tests_failed` / `timeout`), saved to
+`eval/results/latest.json` so the numbers are versioned and regressions show up in diffs. Classifying
+*why* each miss happened is the point: it is the difference between "it broke" and "localization missed
+the file."
+
+When a `--policy` is active, the eval also reports the **policy-violation rate** — how often the agent
+*attempted* to violate a guardrail. This is a safety signal, not just a solve-rate penalty.
 
 ## The mini-bench (clean-room data)
 
@@ -138,8 +174,9 @@ Forge is built as a ladder; each stage adds one load-bearing idea from modern ha
 
 - **v0.1 — the verified core loop (shipped).** Localize, patch, sandbox-verify, eval with a failure
   taxonomy. The verification-first spine.
-- **v0.2 — guardrails.** A policy layer (protected paths, change-scope limits, required checks) and a
-  human-approval gate. Safe at scale.
+- **v0.2 — guardrails (shipped).** A config-driven policy layer (protected paths, change-scope limits,
+  required patterns) that intercepts the patch before it touches the workspace. The eval reports a
+  policy-violation safety signal.
 - **v0.3 — reliability + a real benchmark.** SWE-bench-lite in Docker sandboxes, regression tracking, and a
   calibrated LLM-as-judge for patch quality.
 - **v0.4 — orchestration.** Planner / editor / critic personas and bounded self-repair.
@@ -148,7 +185,7 @@ Forge is built as a ladder; each stage adds one load-bearing idea from modern ha
 ## Development
 
 ```bash
-python -m pytest -q        # 30 tests, offline, ~30s (some spawn a real pytest subprocess)
+python -m pytest -q        # 49 tests, offline, ~30s (some spawn a real pytest subprocess)
 ruff check forge eval tests
 black --check forge eval tests
 ```

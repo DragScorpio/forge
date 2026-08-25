@@ -1,15 +1,17 @@
 {
   "agent": "offline",
   "total": 4,
-  "solved": 4,
-  "solve_rate": 1.0,
+  "solved": 3,
+  "solve_rate": 0.75,
   "outcomes": {
-    "solved": 4,
+    "solved": 3,
     "no_localization": 0,
+    "policy_violation": 1,
     "bad_patch": 0,
     "tests_failed": 0,
     "timeout": 0
   },
+  "policy_violation_rate": 0.25,
   "tasks": [
     {
       "task_id": "dedupe_order",
@@ -18,7 +20,8 @@
         "dedupe.py"
       ],
       "apply_message": "patch applied",
-      "test_status": "passed"
+      "test_status": "passed",
+      "policy_violations": []
     },
     {
       "task_id": "fizzbuzz_order",
@@ -27,16 +30,20 @@
         "fizzbuzz.py"
       ],
       "apply_message": "patch applied",
-      "test_status": "passed"
+      "test_status": "passed",
+      "policy_violations": []
     },
     {
       "task_id": "mean_off_by_one",
-      "outcome": "solved",
+      "outcome": "policy_violation",
       "localized": [
         "meanstat.py"
       ],
-      "apply_message": "patch applied",
-      "test_status": "passed"
+      "apply_message": "",
+      "test_status": "skipped",
+      "policy_violations": [
+        "meanstat.py matches protected pattern 'meanstat.py'"
+      ]
     },
     {
       "task_id": "parse_kv_maxsplit",
@@ -45,9 +52,10 @@
         "kvparse.py"
       ],
       "apply_message": "patch applied",
-      "test_status": "passed"
+      "test_status": "passed",
+      "policy_violations": []
     }
   ],
-  "generated_at": "2026-07-02T23:47:15+00:00",
+  "generated_at": "2026-08-25T00:25:59+00:00",
   "python": "3.12.10"
 }

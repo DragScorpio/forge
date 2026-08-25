@@ -15,6 +15,8 @@ import sys
 
 from . import evaluation
 from .agent import get_agent
+from .policy import load_policy
+from .policy.engine import ALLOW_ALL
 from .sandbox.runner import DEFAULT_TIMEOUT_SECONDS
 from .solve import SOLVED, solve
 from .tasks import load_mini_bench, load_task
@@ -36,6 +38,10 @@ def _print_solve(result) -> None:
             print(f"  - {step}")
     if result.apply_message:
         print(f"apply:   {result.apply_message}")
+    if result.policy_violations:
+        print("policy violations:")
+        for v in result.policy_violations:
+            print(f"  - {v}")
     if result.test_status != "skipped":
         print(f"tests:   {result.test_status}")
     if result.test_output and not result.solved:
@@ -47,7 +53,8 @@ def _print_solve(result) -> None:
 def cmd_solve(args: argparse.Namespace) -> int:
     """Solve a single mini-bench task and print the outcome with evidence."""
     task = load_task(args.task_id, root=args.tasks)
-    result = solve(task, agent=get_agent(), timeout=args.timeout, top_k=args.top_k)
+    policy = load_policy(args.policy) if args.policy else ALLOW_ALL
+    result = solve(task, agent=get_agent(), timeout=args.timeout, top_k=args.top_k, policy=policy)
     _print_solve(result)
     return 0 if result.outcome == SOLVED else 1
 
@@ -55,13 +62,18 @@ def cmd_solve(args: argparse.Namespace) -> int:
 def cmd_eval(args: argparse.Namespace) -> int:
     """Run the whole mini-bench and report solve-rate + failure-mode breakdown."""
     tasks = load_mini_bench(root=args.tasks)
-    report, _ = evaluation.evaluate(tasks, agent=get_agent(), timeout=args.timeout)
+    policy = load_policy(args.policy) if args.policy else ALLOW_ALL
+    report, _ = evaluation.evaluate(
+        tasks, agent=get_agent(), timeout=args.timeout, policy=policy,
+    )
     path = evaluation.save_report(report, out_dir=args.out_dir)
 
     print(f"agent:      {report.agent}")
     print(f"tasks:      {report.total}")
     print(f"solved:     {report.solved}")
     print(f"solve-rate: {report.solve_rate * 100:.1f}%")
+    if report.policy_violation_rate > 0:
+        print(f"policy-violation-rate: {report.policy_violation_rate * 100:.1f}%")
     print("failure modes:")
     for mode, count in evaluation.failure_breakdown(report).items():
         print(f"  {mode:<16} {count}")
@@ -89,12 +101,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_solve.add_argument("--tasks", default="data/mini_bench", help="mini-bench root")
     p_solve.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS)
     p_solve.add_argument("--top-k", type=int, default=5, help="localizer candidate count")
+    p_solve.add_argument(
+        "--policy", default=None, help="path to forge_policy.json (omit for no guardrails)"
+    )
     p_solve.set_defaults(func=cmd_solve)
 
     p_eval = sub.add_parser("eval", help="run the mini-bench and report solve-rate")
     p_eval.add_argument("--tasks", default="data/mini_bench", help="mini-bench root")
     p_eval.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS)
     p_eval.add_argument("--out-dir", default=evaluation.DEFAULT_RESULTS_DIR)
+    p_eval.add_argument(
+        "--policy", default=None, help="path to forge_policy.json (omit for no guardrails)"
+    )
     p_eval.set_defaults(func=cmd_eval)
 
     p_list = sub.add_parser("list", help="list mini-bench tasks")

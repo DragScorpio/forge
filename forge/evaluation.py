@@ -10,10 +10,12 @@ from __future__ import annotations
 import json
 import platform
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .agent import Agent, get_agent
+from .policy import Policy
+from .policy.engine import ALLOW_ALL
 from .solve import FAILURE_MODES, OUTCOMES, SOLVED, SolveResult, solve
 from .tasks import Task
 
@@ -29,6 +31,7 @@ class EvalReport:
     solved: int
     solve_rate: float
     outcomes: dict[str, int]
+    policy_violation_rate: float = 0.0
     tasks: list[dict] = field(default_factory=list)
     generated_at: str = ""
     python: str = ""
@@ -42,16 +45,23 @@ def _summarize_task(result: SolveResult) -> dict:
         "localized": result.localized,
         "apply_message": result.apply_message,
         "test_status": result.test_status,
+        "policy_violations": result.policy_violations,
     }
 
 
 def evaluate(
-    tasks: list[Task], agent: Agent | None = None, timeout: int | None = None
+    tasks: list[Task],
+    agent: Agent | None = None,
+    timeout: int | None = None,
+    policy: Policy | None = None,
 ) -> tuple[EvalReport, list[SolveResult]]:
     """Run every task and aggregate into an :class:`EvalReport`. Returns the report and raw results."""
     agent = agent or get_agent()
-    kwargs = {"timeout": timeout} if timeout is not None else {}
-    results = [solve(task, agent=agent, **kwargs) for task in tasks]
+    policy = policy or ALLOW_ALL
+    kwargs: dict = {}
+    if timeout is not None:
+        kwargs["timeout"] = timeout
+    results = [solve(task, agent=agent, policy=policy, **kwargs) for task in tasks]
 
     # Tally every outcome, solved included, so the report shows the full taxonomy at a glance.
     counts = {outcome: 0 for outcome in OUTCOMES}
@@ -59,6 +69,9 @@ def evaluate(
         counts[r.outcome] += 1
     solved = counts[SOLVED]
     total = len(results)
+    # Safety signal: what fraction of attempts triggered a policy violation.
+    pv_count = counts.get("policy_violation", 0)
+    pv_rate = (pv_count / total) if total else 0.0
 
     report = EvalReport(
         agent=agent.name,
@@ -66,8 +79,9 @@ def evaluate(
         solved=solved,
         solve_rate=(solved / total) if total else 0.0,
         outcomes=counts,
+        policy_violation_rate=pv_rate,
         tasks=[_summarize_task(r) for r in results],
-        generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        generated_at=datetime.now(UTC).isoformat(timespec="seconds"),
         python=platform.python_version(),
     )
     return report, results
